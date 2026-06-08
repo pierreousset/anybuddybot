@@ -58,6 +58,40 @@ def ask_yes_no(msg: str) -> bool:
         return input(f"{msg} [o/N] ").strip().lower().startswith("o")
 
 
+def ask_browser() -> str:
+    """Choix du navigateur. Renvoie le channel Playwright ('' = intégré)."""
+    options = [
+        ("Chromium intégré (recommandé)", ""),
+        ("Google Chrome", "chrome"),
+        ("Microsoft Edge", "msedge"),
+        ("Firefox", "firefox"),
+    ]
+    try:
+        import tkinter as tk
+
+        root = tk.Tk()
+        root.title(TITLE)
+        root.attributes("-topmost", True)
+        choice = {"v": ""}
+        tk.Label(root, text="Avec quel navigateur veux-tu te connecter ?",
+                 padx=20, pady=10).pack()
+
+        def pick(val):
+            choice["v"] = val
+            root.destroy()
+
+        for label, val in options:
+            tk.Button(root, text=label, width=32,
+                      command=lambda v=val: pick(v)).pack(padx=20, pady=4)
+        tk.Label(root, text="", pady=6).pack()
+        root.mainloop()
+        return choice["v"]
+    except Exception:  # noqa: BLE001
+        print("Navigateur : 1) Intégré  2) Chrome  3) Edge  4) Firefox")
+        m = {"2": "chrome", "3": "msedge", "4": "firefox"}
+        return m.get(input("Choix [1] : ").strip(), "")
+
+
 # ─────────────────────────────── garder le PC éveillé ───────────────────────
 class KeepAwake:
     """Empêche la mise en veille pendant l'attente (Mac: caffeinate, Win: API)."""
@@ -99,17 +133,27 @@ def main() -> None:
     if not CONFIG.exists():
         CONFIG.write_text(EXAMPLE.read_text())
 
-    # Connexion (première utilisation).
+    cfg = yaml.safe_load(CONFIG.read_text())
+
+    # Connexion (première utilisation) avec le navigateur choisi.
     if not PROFILE.exists():
+        channel = ask_browser()
+        cfg["browser_channel"] = channel
+        CONFIG.write_text(yaml.safe_dump(cfg, allow_unicode=True))
+        # Firefox nécessite un téléchargement Playwright ; Chrome/Edge utilisent
+        # le navigateur déjà installé sur la machine.
+        if channel == "firefox":
+            info("Téléchargement de Firefox… (~1 min)")
+            subprocess.run([sys.executable, "-m", "playwright", "install", "firefox"])
         info(
-            "Première utilisation : une fenêtre va s'ouvrir.\n\n"
+            "Une fenêtre va s'ouvrir dans le navigateur choisi.\n\n"
             "Connecte-toi à ton compte AnyBuddy (et vérifie qu'une carte est "
             "bien enregistrée). La fenêtre se ferme toute seule une fois "
             "connecté."
         )
         from . import booker_browser
 
-        booker_browser.login()
+        booker_browser.login(channel=channel or None)
 
     # Test ou réel ?
     reel = ask_yes_no(

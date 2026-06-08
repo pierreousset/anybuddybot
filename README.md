@@ -24,9 +24,10 @@ Double-clique le lanceur correspondant à ton ordinateur :
 
 C'est tout. Au premier lancement il :
 1. installe tout seul ce qu'il faut (~2 min) ;
-2. ouvre une fenêtre pour que tu te **connectes à ton compte AnyBuddy** (vérifie qu'une carte est enregistrée) ;
-3. te demande dans une fenêtre : **réserver pour de vrai**, ou **test sans payer** ;
-4. attend l'ouverture du samedi à 8h, réserve le 1er créneau **9h–12h**, puis s'arrête.
+2. te demande **avec quel navigateur te connecter** (Chromium intégré, Chrome, Edge ou Firefox) ;
+3. ouvre une fenêtre pour que tu te **connectes à ton compte AnyBuddy** (vérifie qu'une carte est enregistrée) ;
+4. te demande : **réserver pour de vrai**, ou **test sans payer** ;
+5. attend l'ouverture du samedi à 8h, réserve le 1er créneau **9h–12h**, puis s'arrête.
 
 👉 Lance-le **le vendredi soir**, laisse l'ordinateur **branché et l'écran ouvert**, et oublie-le. Il garde le PC éveillé tout seul.
 

@@ -149,6 +149,7 @@ class Sniper:
                 self.center_id,
                 locale=self.cfg.get("locale", "fr"),
                 headless=self.cfg.get("headless", False),
+                channel=self.cfg.get("browser_channel") or None,
             )
             res = booker.book(slot, dry_run=self.dry_run)
             status = res.get("status", "?")

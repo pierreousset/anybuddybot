@@ -29,6 +29,11 @@ dry_run: true               # browser+dry_run : ouvre le paiement mais NE paie P
 headless: false             # navigateur visible (recommandé au début) ou non
 locale: fr
 
+# Navigateur pour la connexion + la réservation :
+#   "" = Chromium intégré | "chrome" = Google Chrome | "msedge" = Edge | "firefox"
+# (Chrome/Edge doivent être installés sur la machine ; Firefox se télécharge tout seul.)
+browser_channel: ""
+
 # Mode "browser" : connecte-toi une fois via
 #   python -m anybuddy.booker_browser login
 # La session est sauvegardée dans .pw-profile/ et réutilisée. Le paiement

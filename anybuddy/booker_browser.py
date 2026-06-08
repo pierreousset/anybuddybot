@@ -30,6 +30,20 @@ from .client import Slot
 PROFILE_DIR = Path(__file__).parent.parent / ".pw-profile"
 WEB = "https://www.anybuddyapp.com"
 
+# Navigateurs supportés pour login + réservation.
+#   ""/"chromium" = Chromium intégré | "chrome" = Google Chrome
+#   "msedge" = Microsoft Edge | "firefox" = Firefox
+def _launch_context(p, channel: str | None, headless: bool):
+    """Ouvre un contexte persistant avec le navigateur choisi."""
+    PROFILE_DIR.mkdir(exist_ok=True)
+    ch = (channel or "").lower().strip()
+    if ch == "firefox":
+        return p.firefox.launch_persistent_context(str(PROFILE_DIR), headless=headless)
+    kwargs = {"headless": headless}
+    if ch in ("chrome", "msedge", "chrome-beta", "msedge-beta", "chrome-dev"):
+        kwargs["channel"] = ch  # vrai Chrome / Edge installé sur la machine
+    return p.chromium.launch_persistent_context(str(PROFILE_DIR), **kwargs)
+
 # Labels FR/EN observés dans la page (cf. capture).
 TERMS_LABELS = ["J'accepte les", "Conditions Générales de Vente", "I accept"]
 PAY_LABELS = ["Payer", "Pay"]
@@ -44,21 +58,20 @@ def _booking_url(center_id: str, slot: Slot, locale: str = "fr") -> str:
     )
 
 
-def login(headless: bool = False, timeout_s: int = 300) -> None:
+def login(headless: bool = False, timeout_s: int = 300,
+          channel: str | None = None) -> None:
     """Ouvre un navigateur pour te connecter une fois. Session persistée.
 
     Détecte automatiquement la connexion (cookie AuthToken) — pas besoin
     d'appuyer sur une touche. Se ferme tout seul une fois connecté.
+    `channel` : "" (Chromium intégré), "chrome", "msedge" ou "firefox".
     """
     import time
 
     from playwright.sync_api import sync_playwright
 
-    PROFILE_DIR.mkdir(exist_ok=True)
     with sync_playwright() as p:
-        ctx = p.chromium.launch_persistent_context(
-            str(PROFILE_DIR), headless=headless
-        )
+        ctx = _launch_context(p, channel, headless)
         page = ctx.pages[0] if ctx.pages else ctx.new_page()
         page.goto(f"{WEB}/fr/compte")
         print("→ Connecte-toi dans la fenêtre qui s'est ouverte "
@@ -82,10 +95,12 @@ def login(headless: bool = False, timeout_s: int = 300) -> None:
 
 
 class BrowserBooker:
-    def __init__(self, center_id: str, locale: str = "fr", headless: bool = False):
+    def __init__(self, center_id: str, locale: str = "fr", headless: bool = False,
+                 channel: str | None = None):
         self.center_id = center_id
         self.locale = locale
         self.headless = headless
+        self.channel = channel
 
     def book(self, slot: Slot, dry_run: bool = True) -> dict:
         """Réserve + paie un créneau via le navigateur connecté.
@@ -104,9 +119,7 @@ class BrowserBooker:
         result: dict = {"slot": slot.label(), "url": url, "status": "init"}
 
         with sync_playwright() as p:
-            ctx = p.chromium.launch_persistent_context(
-                str(PROFILE_DIR), headless=self.headless
-            )
+            ctx = _launch_context(p, self.channel, self.headless)
             page = ctx.pages[0] if ctx.pages else ctx.new_page()
             try:
                 page.goto(url, wait_until="domcontentloaded")
