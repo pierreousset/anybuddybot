@@ -40,15 +40,35 @@ def is_logged_in() -> bool:
 #   ""/"chromium" = Chromium intégré | "chrome" = Google Chrome
 #   "msedge" = Microsoft Edge | "firefox" = Firefox
 def _launch_context(p, channel: str | None, headless: bool):
-    """Ouvre un contexte persistant avec le navigateur choisi."""
+    """Ouvre un contexte persistant avec le navigateur choisi.
+
+    Masque les signaux d'automatisation pour éviter le blocage Google
+    (« This browser or app may not be secure »).
+    """
     PROFILE_DIR.mkdir(exist_ok=True)
     ch = (channel or "").lower().strip()
     if ch == "firefox":
         return p.firefox.launch_persistent_context(str(PROFILE_DIR), headless=headless)
-    kwargs = {"headless": headless}
+    kwargs = {
+        "headless": headless,
+        # Anti-détection : retire le bandeau « automation » et navigator.webdriver.
+        "ignore_default_args": ["--enable-automation"],
+        "args": [
+            "--disable-blink-features=AutomationControlled",
+            "--no-default-browser-check",
+        ],
+    }
     if ch in ("chrome", "msedge", "chrome-beta", "msedge-beta", "chrome-dev"):
         kwargs["channel"] = ch  # vrai Chrome / Edge installé sur la machine
-    return p.chromium.launch_persistent_context(str(PROFILE_DIR), **kwargs)
+    ctx = p.chromium.launch_persistent_context(str(PROFILE_DIR), **kwargs)
+    # Cache navigator.webdriver côté page (signal n°1 que Google regarde).
+    try:
+        ctx.add_init_script(
+            "Object.defineProperty(navigator,'webdriver',{get:()=>undefined});"
+        )
+    except Exception:  # noqa: BLE001
+        pass
+    return ctx
 
 # Labels FR/EN observés dans la page (cf. capture).
 TERMS_LABELS = ["J'accepte les", "Conditions Générales de Vente", "I accept"]
@@ -99,6 +119,37 @@ def login(headless: bool = False, timeout_s: int = 300,
         else:
             print("⏱️  Délai dépassé sans connexion détectée. Relance et "
                   "connecte-toi plus vite, ou augmente timeout_s.")
+
+
+def login_with_token(token: str, channel: str | None = None) -> bool:
+    """Connexion SANS fenêtre Google : injecte le cookie AuthToken.
+
+    Utile quand Google bloque la connexion dans le navigateur automatisé
+    (« This browser or app may not be secure »). Colle la valeur du cookie
+    AuthToken de ton navigateur normal. Renvoie True si la session est posée.
+    """
+    from playwright.sync_api import sync_playwright
+
+    token = token.strip()
+    with sync_playwright() as p:
+        ctx = _launch_context(p, channel, headless=True)
+        ctx.add_cookies([{
+            "name": "AuthToken", "value": token,
+            "domain": ".anybuddyapp.com", "path": "/",
+        }])
+        page = ctx.pages[0] if ctx.pages else ctx.new_page()
+        try:
+            page.goto(f"{WEB}/fr/compte", wait_until="domcontentloaded")
+        except Exception:  # noqa: BLE001
+            pass
+        ok = "AuthToken" in {c["name"] for c in ctx.cookies()}
+        ctx.close()
+    if ok:
+        LOGIN_MARKER.write_text(channel or "")
+        print("✅ Session enregistrée via token.")
+    else:
+        print("❌ Token non accepté (peut-être expiré).")
+    return ok
 
 
 class BrowserBooker:

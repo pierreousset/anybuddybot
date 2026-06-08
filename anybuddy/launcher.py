@@ -58,6 +58,25 @@ def ask_yes_no(msg: str) -> bool:
         return input(f"{msg} [o/N] ").strip().lower().startswith("o")
 
 
+def ask_token() -> str:
+    """Demande de coller le token AuthToken (repli console)."""
+    msg = ("Google bloque la connexion automatisée.\n\n"
+           "Colle ici ton cookie « AuthToken » (depuis ton navigateur :\n"
+           "DevTools → Application → Cookies → anybuddyapp.com → AuthToken) :")
+    try:
+        import tkinter as tk
+        from tkinter import simpledialog
+
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        val = simpledialog.askstring(TITLE, msg, parent=root)
+        root.destroy()
+        return (val or "").strip()
+    except Exception:  # noqa: BLE001
+        return input(msg + "\n> ").strip()
+
+
 def ask_browser() -> str:
     """Choix du navigateur. Renvoie le channel Playwright ('' = intégré)."""
     options = [
@@ -154,6 +173,23 @@ def main() -> None:
             "connecté."
         )
         booker_browser.login(channel=channel or None)
+
+        # Google bloque parfois la connexion automatisée → repli par token.
+        if not booker_browser.is_logged_in():
+            if ask_yes_no(
+                "La connexion par fenêtre n'a pas abouti (Google bloque "
+                "souvent les navigateurs automatisés).\n\n"
+                "Veux-tu te connecter en collant ton token AuthToken à la "
+                "place ? (voir README : « Connexion bloquée par Google »)"
+            ):
+                tok = ask_token()
+                if tok:
+                    booker_browser.login_with_token(tok, channel or None)
+
+        if not booker_browser.is_logged_in():
+            info("Connexion non aboutie. Réessaie, ou vois le README "
+                 "(section « Connexion bloquée par Google »).")
+            return
 
     # Test ou réel ?
     reel = ask_yes_no(

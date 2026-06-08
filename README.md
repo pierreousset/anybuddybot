@@ -39,6 +39,21 @@ C'est tout. Au premier lancement il :
 > `START.command` → **Ouvrir** → **Ouvrir** (une seule fois).
 > Windows : si SmartScreen s'affiche, **Informations complémentaires** → **Exécuter quand même**.
 
+### Connexion bloquée par Google ?
+
+Google refuse parfois la connexion dans un navigateur automatisé
+(« This browser or app may not be secure »). Solutions, dans l'ordre :
+
+1. **Choisis « Google Chrome »** (pas le Chromium intégré) quand le bot demande
+   le navigateur — combiné aux réglages anti-détection, ça passe souvent.
+2. **Connecte-toi par e-mail/mot de passe ou Apple** au lieu de Google (sur la
+   page de connexion AnyBuddy). Si ton compte est en Google, fais « mot de passe
+   oublié » une fois pour t'en créer un.
+3. **Colle ton token** (le bot le propose si la fenêtre échoue) : dans ton
+   navigateur **normal**, connecté à AnyBuddy → DevTools (F12) → **Application** →
+   **Cookies** → `anybuddyapp.com` → copie la valeur de **`AuthToken`** → colle-la.
+   La session est alors posée sans passer par Google.
+
 Le reste de ce README est pour un usage avancé / personnalisé.
 
 ---
