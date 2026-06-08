@@ -1,0 +1,15 @@
+# Secrets & session (NE JAMAIS pousser)
+config.yaml
+.token
+.pw-profile/
+
+# Logs
+*.log
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# OS
+.DS_Store
