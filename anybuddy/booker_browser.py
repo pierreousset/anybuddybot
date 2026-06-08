@@ -28,7 +28,13 @@ from pathlib import Path
 from .client import Slot
 
 PROFILE_DIR = Path(__file__).parent.parent / ".pw-profile"
+LOGIN_MARKER = PROFILE_DIR / ".logged_in"   # écrit seulement après connexion réussie
 WEB = "https://www.anybuddyapp.com"
+
+
+def is_logged_in() -> bool:
+    """Vrai seulement si une connexion a réellement abouti (cookie capté)."""
+    return LOGIN_MARKER.exists()
 
 # Navigateurs supportés pour login + réservation.
 #   ""/"chromium" = Chromium intégré | "chrome" = Google Chrome
@@ -88,6 +94,7 @@ def login(headless: bool = False, timeout_s: int = 300,
             time.sleep(2)
         ctx.close()
         if ok:
+            LOGIN_MARKER.write_text(channel or "")
             print(f"✅ Connecté. Session sauvegardée dans {PROFILE_DIR}")
         else:
             print("⏱️  Délai dépassé sans connexion détectée. Relance et "

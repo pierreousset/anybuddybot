@@ -135,8 +135,10 @@ def main() -> None:
 
     cfg = yaml.safe_load(CONFIG.read_text())
 
-    # Connexion (première utilisation) avec le navigateur choisi.
-    if not PROFILE.exists():
+    from . import booker_browser
+
+    # Connexion (tant qu'aucune connexion réelle n'a abouti) avec le navigateur choisi.
+    if not booker_browser.is_logged_in():
         channel = ask_browser()
         cfg["browser_channel"] = channel
         CONFIG.write_text(yaml.safe_dump(cfg, allow_unicode=True))
@@ -151,8 +153,6 @@ def main() -> None:
             "bien enregistrée). La fenêtre se ferme toute seule une fois "
             "connecté."
         )
-        from . import booker_browser
-
         booker_browser.login(channel=channel or None)
 
     # Test ou réel ?
