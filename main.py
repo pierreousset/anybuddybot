@@ -21,13 +21,19 @@ import yaml
 from anybuddy.client import AnybuddyClient
 from anybuddy.sniper import Sniper
 
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:  # noqa: BLE001
+        pass
+
 CONFIG = Path(__file__).parent / "config.yaml"
 
 
 def load_cfg() -> dict:
     if not CONFIG.exists():
         sys.exit("config.yaml manquant. Copie config.example.yaml → config.yaml.")
-    return yaml.safe_load(CONFIG.read_text())
+    return yaml.safe_load(CONFIG.read_text(encoding="utf-8"))
 
 
 def cmd_check(cfg: dict) -> None:

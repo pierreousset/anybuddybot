@@ -19,6 +19,13 @@ from pathlib import Path
 
 import yaml
 
+# Console Windows (cp1252) : éviter les plantages sur les emojis/accents.
+for _s in (sys.stdout, sys.stderr):
+    try:
+        _s.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:  # noqa: BLE001
+        pass
+
 ROOT = Path(__file__).resolve().parent.parent
 CONFIG = ROOT / "config.yaml"
 EXAMPLE = ROOT / "config.example.yaml"
@@ -150,9 +157,9 @@ class KeepAwake:
 # ─────────────────────────────────────── flux ──────────────────────────────
 def main() -> None:
     if not CONFIG.exists():
-        CONFIG.write_text(EXAMPLE.read_text())
+        CONFIG.write_text(EXAMPLE.read_text(encoding="utf-8"), encoding="utf-8")
 
-    cfg = yaml.safe_load(CONFIG.read_text())
+    cfg = yaml.safe_load(CONFIG.read_text(encoding="utf-8"))
 
     from . import booker_browser
 
@@ -160,7 +167,7 @@ def main() -> None:
     if not booker_browser.is_logged_in():
         channel = ask_browser()
         cfg["browser_channel"] = channel
-        CONFIG.write_text(yaml.safe_dump(cfg, allow_unicode=True))
+        CONFIG.write_text(yaml.safe_dump(cfg, allow_unicode=True), encoding="utf-8")
         # Firefox nécessite un téléchargement Playwright ; Chrome/Edge utilisent
         # le navigateur déjà installé sur la machine.
         if channel == "firefox":
@@ -207,12 +214,12 @@ def main() -> None:
         ):
             return
 
-    cfg = yaml.safe_load(CONFIG.read_text())
+    cfg = yaml.safe_load(CONFIG.read_text(encoding="utf-8"))
     cfg["booking_method"] = "browser"
     cfg["auto_book"] = True
     cfg["dry_run"] = not reel
     cfg["headless"] = False
-    CONFIG.write_text(yaml.safe_dump(cfg, allow_unicode=True))
+    CONFIG.write_text(yaml.safe_dump(cfg, allow_unicode=True), encoding="utf-8")
 
     info(
         "C'est parti ! Laisse l'ordinateur branché et l'écran ouvert.\n\n"

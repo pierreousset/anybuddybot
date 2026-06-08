@@ -114,7 +114,7 @@ def login(headless: bool = False, timeout_s: int = 300,
             time.sleep(2)
         ctx.close()
         if ok:
-            LOGIN_MARKER.write_text(channel or "")
+            LOGIN_MARKER.write_text(channel or "", encoding="utf-8")
             print(f"✅ Connecté. Session sauvegardée dans {PROFILE_DIR}")
         else:
             print("⏱️  Délai dépassé sans connexion détectée. Relance et "
@@ -145,7 +145,7 @@ def login_with_token(token: str, channel: str | None = None) -> bool:
         ok = "AuthToken" in {c["name"] for c in ctx.cookies()}
         ctx.close()
     if ok:
-        LOGIN_MARKER.write_text(channel or "")
+        LOGIN_MARKER.write_text(channel or "", encoding="utf-8")
         print("✅ Session enregistrée via token.")
     else:
         print("❌ Token non accepté (peut-être expiré).")
