@@ -17,18 +17,26 @@ main.
 
 ## 🟢 Mode ultra-simple (aucune connaissance requise)
 
-Sur Mac, **double-clique le fichier `START.command`**. C'est tout.
+Double-clique le lanceur correspondant à ton ordinateur :
 
-Au premier lancement il :
+- **Mac** → `START.command`
+- **Windows** → `START.bat`
+
+C'est tout. Au premier lancement il :
 1. installe tout seul ce qu'il faut (~2 min) ;
 2. ouvre une fenêtre pour que tu te **connectes à ton compte AnyBuddy** (vérifie qu'une carte est enregistrée) ;
-3. te demande en une fenêtre : **« Test (sans payer) »** ou **« Réserver pour de vrai »** ;
+3. te demande dans une fenêtre : **réserver pour de vrai**, ou **test sans payer** ;
 4. attend l'ouverture du samedi à 8h, réserve le 1er créneau **9h–12h**, puis s'arrête.
 
-👉 Lance-le **le vendredi soir**, laisse le Mac **branché et l'écran ouvert**, et oublie-le.
+👉 Lance-le **le vendredi soir**, laisse l'ordinateur **branché et l'écran ouvert**, et oublie-le. Il garde le PC éveillé tout seul.
 
-> Si macOS bloque le fichier (« développeur non identifié ») : clic droit sur
-> `START.command` → **Ouvrir** → **Ouvrir**. À faire une seule fois.
+**Prérequis unique : Python 3** doit être installé.
+- Mac : généralement déjà présent (sinon [python.org](https://www.python.org/downloads/)).
+- Windows : [python.org](https://www.python.org/downloads/) → coche **« Add Python to PATH »** à l'installation.
+
+> macOS : si le fichier est bloqué (« développeur non identifié »), clic droit sur
+> `START.command` → **Ouvrir** → **Ouvrir** (une seule fois).
+> Windows : si SmartScreen s'affiche, **Informations complémentaires** → **Exécuter quand même**.
 
 Le reste de ce README est pour un usage avancé / personnalisé.
 
@@ -165,10 +173,12 @@ sans risque financier (tu annules).
 ## Structure
 
 ```
-START.command            Launcher tout-en-un (double-clic) — installe, connecte, lance
+START.command            Launcher double-clic — macOS
+START.bat                Launcher double-clic — Windows
 main.py                  CLI : check / slots / snipe / watch
 config.example.yaml      Modèle de configuration
 anybuddy/
+  launcher.py            Flux tout-en-un cross-platform (fenêtres, garde-éveillé)
   client.py              Client API + parsing des disponibilités
   sniper.py              Stratégie : attente d'ouverture → burst → réservation → stop
   booker_browser.py      Réservation + paiement via Playwright (session connectée)

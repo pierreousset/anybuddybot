@@ -1,0 +1,153 @@
+"""
+Lanceur tout-en-un cross-platform (macOS + Windows).
+
+Appelé par START.command (Mac) ou START.bat (Windows) après l'installation.
+Gère : config par défaut, connexion (1re fois), choix test/réel via fenêtres,
+maintien du PC éveillé, lancement du sniping.
+
+Aucune connaissance technique requise côté utilisateur.
+"""
+
+from __future__ import annotations
+
+import ctypes
+import os
+import platform
+import subprocess
+import sys
+from pathlib import Path
+
+import yaml
+
+ROOT = Path(__file__).resolve().parent.parent
+CONFIG = ROOT / "config.yaml"
+EXAMPLE = ROOT / "config.example.yaml"
+PROFILE = ROOT / ".pw-profile"
+TITLE = "AnyBuddy Sniper"
+IS_WIN = platform.system() == "Windows"
+IS_MAC = platform.system() == "Darwin"
+
+
+# ─────────────────────────────── fenêtres (avec repli console) ──────────────
+def _tk():
+    import tkinter as tk
+    from tkinter import messagebox
+
+    root = tk.Tk()
+    root.withdraw()
+    root.attributes("-topmost", True)
+    return tk, messagebox, root
+
+
+def info(msg: str) -> None:
+    try:
+        tk, mb, root = _tk()
+        mb.showinfo(TITLE, msg)
+        root.destroy()
+    except Exception:  # noqa: BLE001
+        print(f"\n=== {TITLE} ===\n{msg}\n")
+
+
+def ask_yes_no(msg: str) -> bool:
+    try:
+        tk, mb, root = _tk()
+        r = mb.askyesno(TITLE, msg)
+        root.destroy()
+        return bool(r)
+    except Exception:  # noqa: BLE001
+        return input(f"{msg} [o/N] ").strip().lower().startswith("o")
+
+
+# ─────────────────────────────── garder le PC éveillé ───────────────────────
+class KeepAwake:
+    """Empêche la mise en veille pendant l'attente (Mac: caffeinate, Win: API)."""
+
+    def __enter__(self):
+        self._proc = None
+        if IS_MAC:
+            try:
+                self._proc = subprocess.Popen(
+                    ["caffeinate", "-dimsu", "-w", str(os.getpid())]
+                )
+            except Exception:  # noqa: BLE001
+                pass
+        elif IS_WIN:
+            # ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED
+            try:
+                ctypes.windll.kernel32.SetThreadExecutionState(
+                    0x80000000 | 0x00000001 | 0x00000002
+                )
+            except Exception:  # noqa: BLE001
+                pass
+        return self
+
+    def __exit__(self, *exc):
+        if IS_WIN:
+            try:
+                ctypes.windll.kernel32.SetThreadExecutionState(0x80000000)
+            except Exception:  # noqa: BLE001
+                pass
+        if self._proc:
+            try:
+                self._proc.terminate()
+            except Exception:  # noqa: BLE001
+                pass
+
+
+# ─────────────────────────────────────── flux ──────────────────────────────
+def main() -> None:
+    if not CONFIG.exists():
+        CONFIG.write_text(EXAMPLE.read_text())
+
+    # Connexion (première utilisation).
+    if not PROFILE.exists():
+        info(
+            "Première utilisation : une fenêtre va s'ouvrir.\n\n"
+            "Connecte-toi à ton compte AnyBuddy (et vérifie qu'une carte est "
+            "bien enregistrée). La fenêtre se ferme toute seule une fois "
+            "connecté."
+        )
+        from . import booker_browser
+
+        booker_browser.login()
+
+    # Test ou réel ?
+    reel = ask_yes_no(
+        "Le bot va guetter un créneau le samedi matin (9h–12h) et le réserver "
+        "dès l'ouverture (8h).\n\n"
+        "RÉSERVER POUR DE VRAI (payer avec ta carte enregistrée) ?\n\n"
+        "• Oui  = réserve et paie\n"
+        "• Non  = test (va jusqu'au paiement SANS payer)"
+    )
+    if reel:
+        if not ask_yes_no(
+            "⚠️ Confirmation\n\nLe bot RÉSERVERA et PAIERA avec ta carte dès "
+            "qu'un créneau 9h–12h se libère.\n"
+            "(Créneau annulable/remboursable ~24-48h avant.)\n\nContinuer ?"
+        ):
+            return
+
+    cfg = yaml.safe_load(CONFIG.read_text())
+    cfg["booking_method"] = "browser"
+    cfg["auto_book"] = True
+    cfg["dry_run"] = not reel
+    cfg["headless"] = False
+    CONFIG.write_text(yaml.safe_dump(cfg, allow_unicode=True))
+
+    info(
+        "C'est parti ! Laisse l'ordinateur branché et l'écran ouvert.\n\n"
+        "Le bot attend l'ouverture (samedi 8h), réserve le 1er créneau 9h–12h, "
+        "puis s'arrête tout seul.\n\nTu peux laisser cette fenêtre ouverte."
+    )
+
+    # Import tardif pour que les fenêtres s'affichent avant tout chargement réseau.
+    from .sniper import Sniper
+
+    with KeepAwake():
+        Sniper(cfg).snipe()
+
+    info("Terminé. Vérifie tes réservations sur AnyBuddy 🎾")
+
+
+if __name__ == "__main__":
+    main()
